@@ -19,7 +19,14 @@ export default function MainScene() {
     const [isLoading, setIsLoading] = useState(false);
     const [bookChunks, setBookChunks] = useState<BookChunk[]>([]);
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const { speak, stop, isSpeaking } = useTTS();
+    const [ttsError, setTtsError] = useState<string | null>(null);
+    const { speak, stop, isSpeaking, isSupported } = useTTS({
+        onError: (err) => {
+            console.error("TTS Error in MainScene:", err);
+            setTtsError("Audio playback failed. Please check your browser settings.");
+            setTimeout(() => setTtsError(null), 3000);
+        }
+    });
     const [playingMessageId, setPlayingMessageId] = useState<number | null>(null);
 
     const suggestedPrompts = [
@@ -129,9 +136,14 @@ export default function MainScene() {
         >
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col h-[90vh]">
                 {/* Header */}
-                <div className="p-6 text-center border-b border-gray-100 bg-white z-10">
+                <div className="p-6 text-center border-b border-gray-100 bg-white z-10 relative">
                     <h1 className="text-3xl font-bold text-gray-900 mb-2">Ask Nehru</h1>
                     <p className="text-gray-500 text-sm">Ask questions about 'The Discovery of India'</p>
+                    {ttsError && (
+                        <div className="absolute top-0 left-0 w-full bg-red-100 text-red-700 text-xs py-1 px-4">
+                            {ttsError}
+                        </div>
+                    )}
                 </div>
 
                 {/* Chat Area */}
@@ -180,6 +192,11 @@ export default function MainScene() {
                                                 </div>
                                                 <button
                                                     onClick={() => {
+                                                        if (!isSupported) {
+                                                            setTtsError("Text-to-Speech is not supported in this browser.");
+                                                            setTimeout(() => setTtsError(null), 3000);
+                                                            return;
+                                                        }
                                                         if (playingMessageId === idx && isSpeaking) {
                                                             stop();
                                                             setPlayingMessageId(null);
@@ -189,9 +206,10 @@ export default function MainScene() {
                                                         }
                                                     }}
                                                     className={`flex items-center gap-2 border px-4 py-2 rounded-full transition-colors text-sm font-medium ${playingMessageId === idx && isSpeaking
-                                                            ? 'text-red-600 border-red-100 bg-red-50 hover:bg-red-100'
-                                                            : 'text-blue-600 border-blue-100 bg-blue-50/50 hover:bg-blue-100'
+                                                        ? 'text-red-600 border-red-100 bg-red-50 hover:bg-red-100'
+                                                        : 'text-blue-600 border-blue-100 bg-blue-50/50 hover:bg-blue-100'
                                                         }`}
+                                                    title={!isSupported ? "Audio not supported" : "Read aloud"}
                                                 >
                                                     {playingMessageId === idx && isSpeaking ? (
                                                         <>
