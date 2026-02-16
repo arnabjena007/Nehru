@@ -12,6 +12,7 @@
     "deploy": "gh-pages -d dist"
   },
   "dependencies": {
+    "elevenlabs-client": "^0.0.22",
     "framer-motion": "^12.34.0",
     "lucide-react": "^0.469.0",
     "react": "^18.3.1",

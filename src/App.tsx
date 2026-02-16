@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import Scene0 from "./components/Scene0";
-import Scene1 from "./components/Scene1";
-import Scene2 from "./components/Scene2";
-import MainScene from "./components/MainScene";
+const Scene0 = lazy(() => import("./components/Scene0"));
+const Scene1 = lazy(() => import("./components/Scene1"));
+const Scene2 = lazy(() => import("./components/Scene2"));
+const MainScene = lazy(() => import("./components/MainScene"));
 import { useAudio } from "./hooks/useAudio";
 import { AUDIO_CONFIG } from "./config/audio";
 
@@ -42,7 +42,9 @@ function App() {
     <div className="bg-black min-h-screen font-serif">
       <AnimatePresence mode="wait">
         {scene === 0 && (
-          <Scene0 key="scene0" onComplete={handleScene0Complete} onSkip={handleSkipIntro} />
+          <Suspense fallback={null}>
+            <Scene0 key="scene0" onComplete={handleScene0Complete} onSkip={handleSkipIntro} />
+          </Suspense>
         )}
 
         {scene === 1 && (
@@ -52,16 +54,22 @@ function App() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <Scene1 onStart={handleStartExperience} />
+            <Suspense fallback={null}>
+              <Scene1 onStart={handleStartExperience} />
+            </Suspense>
           </motion.div>
         )}
 
         {scene === 2 && (
-          <Scene2 key="scene2" onAudioEnd={handleScene2Complete} />
+          <Suspense fallback={null}>
+            <Scene2 key="scene2" onAudioEnd={handleScene2Complete} />
+          </Suspense>
         )}
 
         {scene === 3 && (
-          <MainScene key="main" />
+          <Suspense fallback={null}>
+            <MainScene key="main" />
+          </Suspense>
         )}
       </AnimatePresence>
     </div>

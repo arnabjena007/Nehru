@@ -5,6 +5,7 @@ import rawText from '../data/discovery_of_india.txt?raw';
 import { processText, BookChunk } from '../utils/textProcessor';
 import { searchBook, generateExtractiveSummary } from '../utils/searchEngine';
 import { knowledgeBase, fallbackResponse, QAEntry } from '../data/knowledgeBase';
+import { useTTS } from '../hooks/useTTS';
 
 export default function MainScene() {
     const [messages, setMessages] = useState<Array<{
@@ -18,6 +19,8 @@ export default function MainScene() {
     const [isLoading, setIsLoading] = useState(false);
     const [bookChunks, setBookChunks] = useState<BookChunk[]>([]);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const { speak, stop, isSpeaking } = useTTS();
+    const [playingMessageId, setPlayingMessageId] = useState<number | null>(null);
 
     const suggestedPrompts = [
         "What is the central idea of The Discovery of India?",
@@ -175,9 +178,30 @@ export default function MainScene() {
                                                         </span>
                                                     )}
                                                 </div>
-                                                <button className="flex items-center gap-2 text-blue-600 border border-blue-100 bg-blue-50/50 px-4 py-2 rounded-full hover:bg-blue-100 transition-colors text-sm font-medium">
-                                                    <Volume2 size={18} />
-                                                    Play
+                                                <button
+                                                    onClick={() => {
+                                                        if (playingMessageId === idx && isSpeaking) {
+                                                            stop();
+                                                            setPlayingMessageId(null);
+                                                        } else {
+                                                            speak(msg.content);
+                                                            setPlayingMessageId(idx);
+                                                        }
+                                                    }}
+                                                    className={`flex items-center gap-2 border px-4 py-2 rounded-full transition-colors text-sm font-medium ${playingMessageId === idx && isSpeaking
+                                                            ? 'text-red-600 border-red-100 bg-red-50 hover:bg-red-100'
+                                                            : 'text-blue-600 border-blue-100 bg-blue-50/50 hover:bg-blue-100'
+                                                        }`}
+                                                >
+                                                    {playingMessageId === idx && isSpeaking ? (
+                                                        <>
+                                                            <span className="animate-pulse">●</span> Stop
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Volume2 size={18} /> Play
+                                                        </>
+                                                    )}
                                                 </button>
                                             </div>
                                             <p className="text-gray-700 leading-relaxed text-lg">
