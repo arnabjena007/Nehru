@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import Scene0 from "./components/Scene0";
 import Scene1 from "./components/Scene1";
@@ -9,10 +9,9 @@ import { AUDIO_CONFIG } from "./config/audio";
 
 function App() {
   const [scene, setScene] = useState<0 | 1 | 2 | 3>(0);
-  const [showScene1, setShowScene1] = useState(false);
 
   // Ambient background noise
-  const { play: playAmbient, pause: pauseAmbient, fadeOut: fadeOutAmbient } = useAudio({
+  const { play: playAmbient, fadeOut: fadeOutAmbient } = useAudio({
     src: AUDIO_CONFIG.AMBIENT,
     loop: true,
     volume: 0.3
