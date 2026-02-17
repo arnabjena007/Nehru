@@ -6,7 +6,7 @@ export interface SearchResult {
     score: number;
 }
 
-const STOP_WORDS = new Set(['the', 'is', 'at', 'which', 'on', 'and', 'a', 'an', 'in', 'it', 'of', 'to', 'for', 'with', 'that', 'this', 'you', 'i', 'we', 'are', 'was', 'were', 'be', 'as', 'but', 'by', 'not', 'have', 'had', 'has', 'from', 'or']);
+const STOP_WORDS = new Set(['the', 'is', 'at', 'which', 'on', 'and', 'a', 'an', 'in', 'it', 'of', 'to', 'for', 'with', 'that', 'this', 'you', 'i', 'we', 'are', 'was', 'were', 'be', 'as', 'but', 'by', 'not', 'have', 'had', 'has', 'from', 'or', 'what', 'where', 'who', 'when', 'how', 'why']);
 
 export const searchBook = (query: string, chunks: BookChunk[]): SearchResult[] => {
     const tokens = query.toLowerCase()
@@ -33,6 +33,12 @@ export const searchBook = (query: string, chunks: BookChunk[]): SearchResult[] =
                 }
             });
 
+            // Exact phrase score boost
+            const lowerQuery = query.toLowerCase();
+            if (lowerContent.includes(lowerQuery)) {
+                score += 30;
+            }
+
             if (chunk.content.length < 100) score *= 0.8;
 
             return { chunk, score };
@@ -43,7 +49,7 @@ export const searchBook = (query: string, chunks: BookChunk[]): SearchResult[] =
     // Return top 5 results
     return sortedChunks.slice(0, 5).map(item => ({
         response: item.chunk.content,
-        reference: `The Discovery of India${item.chunk.chapter ? `, ${item.chunk.chapter}` : ''}`,
+        reference: item.chunk.chapter ? item.chunk.chapter : '',
         score: item.score
     }));
 };

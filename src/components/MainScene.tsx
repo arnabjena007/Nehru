@@ -4,6 +4,7 @@ import { Send, Volume2 } from 'lucide-react';
 import rawText from '../data/discovery_of_india.txt?raw';
 import { processText, BookChunk } from '../utils/textProcessor';
 import { searchBook, generateExtractiveSummary } from '../utils/searchEngine';
+import { generateAnswer } from '../services/gemini';
 import { knowledgeBase, fallbackResponse, QAEntry } from '../data/knowledgeBase';
 import { useTTS } from '../hooks/useTTS';
 
@@ -33,7 +34,11 @@ export default function MainScene() {
         "What is the central idea of The Discovery of India?",
         "How has India's past shaped its present?",
         "Tell me about 'Unity in Diversity'.",
-        "What is the scientific temper?"
+        "What is the scientific temper?",
+        "How did the British Empire impact India's economy?",
+        "What is the significance of the caste system in Indian history?",
+        "Discuss the role of religion in Indian society.",
+        "What is the future of India according to Nehru?"
     ];
 
     const scrollToBottom = () => {
@@ -89,43 +94,56 @@ export default function MainScene() {
         setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
         setIsLoading(true);
 
-        // Find response
-        setTimeout(() => {
-            const result = findResponse(userMessage);
-            let newMessages: any[] = [];
+        const result = findResponse(userMessage);
 
-            if (result.type === 'search') {
-                // Generate summary from top results
-                const summary = generateExtractiveSummary(userMessage, result.results!);
+        // Prepare default/fallback response
+        let assistantMessage: any = {
+            role: 'assistant',
+            content: "I'm sorry, I couldn't find relevant information.",
+            reference: undefined
+        };
 
-                // Top result (used for reference and primary score)
-                const topMatch = result.results![0];
+        if (result.type === 'search' && result.results && result.results.length > 0) {
+            // Try to generate AI answer
+            const topChunks = result.results.slice(0, 3).map(r => r.response);
+            const aiResponse = await generateAnswer(userMessage, topChunks);
 
-                newMessages.push({
+            if (aiResponse) {
+                assistantMessage = {
                     role: 'assistant',
-                    content: summary, // Use generated summary here
-                    reference: "Synthesized from multiple sections of 'The Discovery of India'",
-                    score: topMatch.score, // Use top match score as confidence
-                    related: result.results! // Keep all results for the "Related" section
-                });
-            } else if (result.type === 'kb') {
-                newMessages.push({
-                    role: 'assistant',
-                    content: result.result!.response,
-                    reference: result.result!.reference,
-                    score: 100 // KB matches are considered perfect
-                });
+                    content: aiResponse,
+                    reference: undefined,
+                    score: result.results[0].score,
+                    related: result.results
+                };
             } else {
-                newMessages.push({
+                // Fallback to extractive summary
+                const summary = generateExtractiveSummary(userMessage, result.results);
+                assistantMessage = {
                     role: 'assistant',
-                    content: result.result!.response,
-                    reference: result.result!.reference
-                });
+                    content: summary,
+                    reference: undefined,
+                    score: result.results[0].score,
+                    related: result.results
+                };
             }
+        } else if (result.type === 'kb') {
+            assistantMessage = {
+                role: 'assistant',
+                content: result.result!.response,
+                reference: result.result!.reference,
+                score: 100
+            };
+        } else {
+            assistantMessage = {
+                role: 'assistant',
+                content: result.result!.response,
+                reference: result.result!.reference
+            };
+        }
 
-            setMessages(prev => [...prev, ...newMessages]);
-            setIsLoading(false);
-        }, 800);
+        setMessages(prev => [...prev, assistantMessage]);
+        setIsLoading(false);
     };
 
     return (

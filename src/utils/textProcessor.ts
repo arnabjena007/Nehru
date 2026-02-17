@@ -39,8 +39,7 @@ export const processText = (rawText: string): BookChunk[] => {
         if (chunkContent.length > 50) {
             chunks.push({
                 id: currentId++,
-                content: chunkContent,
-                chapter: "The Discovery of India"
+                content: chunkContent
             });
         }
 

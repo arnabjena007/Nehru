@@ -12,6 +12,7 @@
     "deploy": "gh-pages -d dist"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "elevenlabs-client": "^0.0.22",
     "framer-motion": "^12.34.0",
     "lucide-react": "^0.469.0",
