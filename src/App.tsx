@@ -39,7 +39,7 @@ function App() {
   };
 
   return (
-    <div className="bg-black min-h-screen font-serif">
+    <div className="min-h-screen bg-[#060505] text-stone-100 font-serif">
       <AnimatePresence mode="wait">
         {scene === 0 && (
           <Suspense fallback={null}>

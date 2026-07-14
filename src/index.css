@@ -1,3 +1,43 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.portrait-line-art svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+.portrait-line-art .fil1 {
+  fill: rgba(248, 220, 168, 0);
+  stroke: #f8dca8;
+  stroke-width: 34;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 15500;
+  stroke-dashoffset: 15500;
+  animation:
+    nehru-line-draw 5.8s ease-in-out forwards,
+    nehru-fill-in 1.4s ease-out 5.2s forwards;
+}
+
+.portrait-line-art .fil1:nth-of-type(2n) {
+  animation-delay: 0.12s, 5.25s;
+}
+
+.portrait-line-art .fil1:nth-of-type(3n) {
+  animation-delay: 0.24s, 5.3s;
+}
+
+@keyframes nehru-line-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes nehru-fill-in {
+  to {
+    fill: rgba(248, 220, 168, 0.12);
+  }
+}

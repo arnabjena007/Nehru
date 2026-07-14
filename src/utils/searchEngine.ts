@@ -8,11 +8,37 @@ export interface SearchResult {
 
 const STOP_WORDS = new Set(['the', 'is', 'at', 'which', 'on', 'and', 'a', 'an', 'in', 'it', 'of', 'to', 'for', 'with', 'that', 'this', 'you', 'i', 'we', 'are', 'was', 'were', 'be', 'as', 'but', 'by', 'not', 'have', 'had', 'has', 'from', 'or', 'what', 'where', 'who', 'when', 'how', 'why']);
 
-export const searchBook = (query: string, chunks: BookChunk[]): SearchResult[] => {
-    const tokens = query.toLowerCase()
-        .replace(/[^\w\s]/g, '') // Remove punctuation
+const normalizeToken = (token: string) => {
+    let normalized = token.toLowerCase();
+
+    if (normalized.endsWith('ies') && normalized.length > 4) {
+        normalized = `${normalized.slice(0, -3)}y`;
+    } else if (normalized.endsWith('ing') && normalized.length > 5) {
+        normalized = normalized.slice(0, -3);
+    } else if (normalized.endsWith('ed') && normalized.length > 4) {
+        normalized = normalized.slice(0, -2);
+    } else if (normalized.endsWith('s') && normalized.length > 4) {
+        normalized = normalized.slice(0, -1);
+    }
+
+    return normalized;
+};
+
+const tokenize = (text: string) =>
+    text.toLowerCase()
+        .replace(/[^\w\s']/g, ' ')
         .split(/\s+/)
-        .filter(t => t.length > 2 && !STOP_WORDS.has(t));
+        .map(token => token.replace(/^'+|'+$/g, ''))
+        .filter(token => token.length > 2 && !STOP_WORDS.has(token))
+        .map(normalizeToken);
+
+const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const unique = (values: string[]) => Array.from(new Set(values));
+
+export const searchBook = (query: string, chunks: BookChunk[]): SearchResult[] => {
+    const tokens = unique(tokenize(query));
+    const queryTerms = query.toLowerCase().replace(/[^\w\s']/g, ' ').replace(/\s+/g, ' ').trim();
 
     console.log("Search tokens:", tokens);
     console.log("Total chunks to search:", chunks.length);
@@ -24,19 +50,60 @@ export const searchBook = (query: string, chunks: BookChunk[]): SearchResult[] =
         .map(chunk => {
             let score = 0;
             const lowerContent = chunk.content.toLowerCase();
+            const contentTokens = tokenize(chunk.content);
+            const tokenCounts = contentTokens.reduce<Record<string, number>>((counts, token) => {
+                counts[token] = (counts[token] || 0) + 1;
+                return counts;
+            }, {});
 
             tokens.forEach(token => {
-                if (lowerContent.includes(token)) {
-                    score += 10;
-                    const count = (lowerContent.match(new RegExp(token, 'g')) || []).length;
-                    score += count * 2;
+                const count = tokenCounts[token] || 0;
+                if (count > 0) {
+                    score += 12;
+                    score += Math.min(count, 8) * 2;
                 }
             });
 
+            const matchedTokens = tokens.filter(token => tokenCounts[token]);
+            const coverage = matchedTokens.length / tokens.length;
+            score += coverage * 35;
+
+            if (matchedTokens.length >= 2) {
+                const positions = contentTokens
+                    .map((token, index) => matchedTokens.includes(token) ? index : -1)
+                    .filter(index => index !== -1);
+
+                const tightestWindow = positions.reduce((best, startPosition, startIndex) => {
+                    for (let endIndex = startIndex + 1; endIndex < positions.length; endIndex++) {
+                        const window = positions[endIndex] - startPosition;
+                        if (window > 0 && window < best) return window;
+                    }
+                    return best;
+                }, Number.POSITIVE_INFINITY);
+
+                if (tightestWindow < 25) score += 20;
+                if (tightestWindow < 10) score += 20;
+            }
+
             // Exact phrase score boost
-            const lowerQuery = query.toLowerCase();
-            if (lowerContent.includes(lowerQuery)) {
-                score += 30;
+            if (queryTerms && lowerContent.includes(queryTerms)) {
+                score += 60;
+            }
+
+            const importantPhrases = queryTerms.match(/\b[\w']+(?:\s+[\w']+){1,3}\b/g) || [];
+            importantPhrases.forEach(phrase => {
+                if (phrase.length > 6 && lowerContent.includes(phrase)) score += 12;
+            });
+
+            tokens.forEach(token => {
+                const wordMatch = new RegExp(`\\b${escapeRegex(token)}\\b`, 'i');
+                if (wordMatch.test(chunk.content)) {
+                    score += 4;
+                }
+            });
+
+            if (coverage < 0.34) {
+                score *= 0.55;
             }
 
             if (chunk.content.length < 100) score *= 0.8;
@@ -57,10 +124,7 @@ export const searchBook = (query: string, chunks: BookChunk[]): SearchResult[] =
 export const generateExtractiveSummary = (query: string, results: SearchResult[]): string => {
     if (results.length === 0) return "I could not find any relevant information.";
 
-    const tokens = query.toLowerCase()
-        .replace(/[^\w\s]/g, '')
-        .split(/\s+/)
-        .filter(t => t.length > 2 && !STOP_WORDS.has(t));
+    const tokens = unique(tokenize(query));
 
     // Collect sentences from top 3 results
     const allSentences: string[] = [];
@@ -73,12 +137,15 @@ export const generateExtractiveSummary = (query: string, results: SearchResult[]
     // Score sentences
     const scoredSentences = allSentences.map(sentence => {
         let score = 0;
-        const lowerSent = sentence.toLowerCase();
+        const sentenceTokens = tokenize(sentence);
 
         // Keyword matching
         tokens.forEach(token => {
-            if (lowerSent.includes(token)) score += 1;
+            if (sentenceTokens.includes(token)) score += 2;
         });
+
+        const coverage = tokens.filter(token => sentenceTokens.includes(token)).length / Math.max(tokens.length, 1);
+        score += coverage * 5;
 
         // Penalize very short or very long sentences
         if (sentence.length < 20) score *= 0.5;

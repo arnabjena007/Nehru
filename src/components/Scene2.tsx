@@ -8,7 +8,7 @@ interface Scene2Props {
 }
 
 export default function Scene2({ onAudioEnd }: Scene2Props) {
-    const { play, audioRef } = useAudio({
+    const { play, pause, audioRef } = useAudio({
         src: AUDIO_CONFIG.SPEECH,
         volume: 1
     });
@@ -36,18 +36,23 @@ export default function Scene2({ onAudioEnd }: Scene2Props) {
         return () => audio.removeEventListener('ended', handleEnded);
     }, [audioRef]);
 
+    const handleSkipSpeech = () => {
+        pause();
+        onAudioEnd?.();
+    };
+
     return (
         <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="fixed inset-0 bg-black z-50 flex items-center justify-center p-8"
+            className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-[radial-gradient(circle_at_top,#241a15_0%,#0d0a09_50%,#040404_100%)]"
         >
-            <div className="max-w-4xl text-center space-y-8 relative z-10 flex flex-col items-center">
+            <div className="max-w-4xl text-center space-y-8 relative z-10 flex flex-col items-center px-2">
                 <motion.p
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 2, delay: 0.5 }}
-                    className="font-serif text-xl md:text-3xl leading-relaxed text-gray-300 tracking-wide"
+                    className="font-serif text-xl md:text-3xl leading-relaxed text-stone-200 tracking-wide max-w-3xl"
                 >
                     "Long years ago, we made a tryst with destiny, and now the time comes when we shall redeem our pledge, not wholly or in full measure, but very substantially.
                 </motion.p>
@@ -56,7 +61,7 @@ export default function Scene2({ onAudioEnd }: Scene2Props) {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 2, delay: 8 }}
-                    className="font-serif text-xl md:text-3xl leading-relaxed text-gray-300 tracking-wide"
+                    className="font-serif text-xl md:text-3xl leading-relaxed text-stone-200 tracking-wide max-w-3xl"
                 >
                     At the stroke of the midnight hour, when the world sleeps, India will awake to life and freedom."
                 </motion.p>
@@ -67,9 +72,22 @@ export default function Scene2({ onAudioEnd }: Scene2Props) {
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 1 }}
                         onClick={onAudioEnd}
-                        className="mt-12 px-8 py-3 border border-amber-500/50 text-amber-500 rounded-full font-serif text-lg tracking-widest hover:border-amber-400 hover:text-amber-400 hover:bg-amber-900/10 transition-all"
+                        className="mt-12 px-8 py-3 border border-amber-100/35 text-amber-50 font-serif text-lg tracking-[0.3em] hover:border-amber-100/70 hover:bg-white/10 transition-all bg-white/5 backdrop-blur-sm"
                     >
-                        [ Enter ]
+                        Enter
+                    </motion.button>
+                )}
+
+                {!audioEnded && (
+                    <motion.button
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 0.9 }}
+                        transition={{ delay: 2.4, duration: 1 }}
+                        whileHover={{ scale: 1.04 }}
+                        onClick={handleSkipSpeech}
+                        className="mt-6 px-7 py-3 border border-amber-100/30 text-xs uppercase tracking-[0.3em] text-amber-50 bg-white/5 hover:bg-white/10 hover:border-amber-100/60 transition-colors backdrop-blur-sm"
+                    >
+                        Skip Speech
                     </motion.button>
                 )}
             </div>
